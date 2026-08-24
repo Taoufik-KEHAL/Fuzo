@@ -3,11 +3,13 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { BannerAdSlot } from '../components/BannerAdSlot';
 import { Board } from '../components/Board';
 import { GameOverOverlay } from '../components/GameOverOverlay';
 import { ScoreBoard } from '../components/ScoreBoard';
+import { useGameOverAds } from '../hooks/useGameOverAds';
 import { useTheme } from '../hooks/useTheme';
-import { applyMove, createInitialState } from '../lib/gameLogic';
+import { applyMove, clearRandomTile, createInitialState, isGameOver as checkGameOver } from '../lib/gameLogic';
 import { loadBestScore, saveBestScore } from '../lib/storage';
 import type { Direction, GameState } from '../lib/types';
 
@@ -19,12 +21,14 @@ export default function GameScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
+  const { isRewardedReady, watchRewardedAd, registerDecline } = useGameOverAds();
 
   const [state, setState] = useState<GameState | null>(null);
   const [paused, setPaused] = useState(false);
   const [mergedTileIds, setMergedTileIds] = useState<number[]>([]);
   const [newTileIds, setNewTileIds] = useState<number[]>([]);
   const [wasNewBest, setWasNewBest] = useState(false);
+  const [isContinuing, setIsContinuing] = useState(false);
   const bestAtStartRef = useRef(0);
 
   useEffect(() => {
@@ -73,8 +77,27 @@ export default function GameScreen() {
     setMergedTileIds([]);
     setNewTileIds([]);
     setWasNewBest(false);
+    setIsContinuing(false);
     setPaused(false);
   }, []);
+
+  const handleWatchAd = useCallback(() => {
+    setIsContinuing(true);
+    const started = watchRewardedAd(() => {
+      setState((prev) => {
+        if (!prev) return prev;
+        const grid = clearRandomTile(prev.grid);
+        return { ...prev, grid, isGameOver: checkGameOver(grid) };
+      });
+      setIsContinuing(false);
+    });
+    if (!started) setIsContinuing(false);
+  }, [watchRewardedAd]);
+
+  const handleDeclineContinue = useCallback(() => {
+    registerDecline();
+    handleNewGame();
+  }, [registerDecline, handleNewGame]);
 
   const boardSize = Math.min(width - BOARD_MARGIN * 2, MAX_BOARD_SIZE);
 
@@ -132,10 +155,15 @@ export default function GameScreen() {
             colors={colors}
             finalScore={state.score}
             isNewBest={wasNewBest}
-            onNewGame={handleNewGame}
+            isRewardedReady={isRewardedReady}
+            isContinuing={isContinuing}
+            onWatchAd={handleWatchAd}
+            onNewGame={handleDeclineContinue}
           />
         )}
       </View>
+
+      <BannerAdSlot />
     </SafeAreaView>
   );
 }
