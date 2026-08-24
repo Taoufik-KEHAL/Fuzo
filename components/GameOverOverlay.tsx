@@ -1,4 +1,4 @@
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ThemeColors } from '../constants/theme';
 
@@ -6,21 +6,10 @@ interface GameOverOverlayProps {
   colors: ThemeColors;
   finalScore: number;
   isNewBest: boolean;
-  isRewardedReady: boolean;
-  isContinuing: boolean;
-  onWatchAd: () => void;
   onNewGame: () => void;
 }
 
-export function GameOverOverlay({
-  colors,
-  finalScore,
-  isNewBest,
-  isRewardedReady,
-  isContinuing,
-  onWatchAd,
-  onNewGame,
-}: GameOverOverlayProps) {
+export function GameOverOverlay({ colors, finalScore, isNewBest, onNewGame }: GameOverOverlayProps) {
   return (
     <View style={[styles.overlay, { backgroundColor: colors.overlay }]}>
       <View style={[styles.card, { backgroundColor: colors.surface }]}>
@@ -29,28 +18,11 @@ export function GameOverOverlay({
         {isNewBest && <Text style={[styles.newBest, { color: colors.accentSecondary }]}>New best!</Text>}
 
         <Pressable
-          onPress={onWatchAd}
-          disabled={isContinuing}
-          style={[styles.button, { backgroundColor: colors.accent, opacity: isContinuing ? 0.7 : 1 }]}
-        >
-          {isContinuing ? (
-            <ActivityIndicator color="#FFFFFF" />
-          ) : (
-            <Text style={styles.buttonText}>Watch ad to continue</Text>
-          )}
-        </Pressable>
-
-        <Pressable
           onPress={onNewGame}
-          disabled={isContinuing}
-          style={[styles.button, styles.secondaryButton, { borderColor: colors.accent }]}
+          style={[styles.button, { backgroundColor: colors.accent }]}
         >
-          <Text style={[styles.buttonText, { color: colors.accent }]}>New game</Text>
+          <Text style={styles.buttonText}>New game</Text>
         </Pressable>
-
-        {!isRewardedReady && !isContinuing && (
-          <Text style={[styles.hint, { color: colors.textSecondary }]}>Ad unavailable right now</Text>
-        )}
       </View>
     </View>
   );
@@ -96,18 +68,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 18,
   },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    marginTop: 12,
-  },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',
-  },
-  hint: {
-    fontSize: 12,
-    marginTop: 10,
   },
 });
