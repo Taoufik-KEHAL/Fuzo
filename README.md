@@ -10,6 +10,7 @@ A 2048-style merge puzzle game built with Expo (React Native) + TypeScript.
 - `react-native-gesture-handler` for swipe detection
 - `react-native-reanimated` for tile slide/merge animations
 - `react-native-google-mobile-ads` for banner / rewarded / interstitial ads (**TEST ad unit IDs only**, via the library's `TestIds`)
+- `firebase` (JS SDK, not `@react-native-firebase`) for anonymous session/user management
 
 ## Project layout
 
@@ -20,12 +21,13 @@ lib/
   gameLogic.test.ts  unit tests for gameLogic.ts (jest)
   storage.ts       AsyncStorage best-score persistence
   ads.ts           Mobile Ads SDK init + TEST ad unit id constants
+  firebase.ts      Firebase app/auth init + anonymous session helper
 app/
-  _layout.tsx      root Stack layout, gesture/safe-area providers, ads init
+  _layout.tsx      root Stack layout, gesture/safe-area providers, ads + session init
   index.tsx        Home screen
   game.tsx         Game screen
 components/        Board, TileView, ScoreBoard, GameOverOverlay, BannerAdSlot
-hooks/              useTheme, useGameOverAds
+hooks/              useTheme, useGameOverAds, useAuth
 constants/theme.ts  color palette (light/dark) + tile colors
 ```
 
@@ -61,8 +63,33 @@ to continue" just won't be shown as ready, interstitial is skipped if it fails t
 - Rewarded: "Watch ad to continue" on Game Over — clears one random tile and lets the player continue.
 - Interstitial: shown after every 3rd Game Over where the player declines/skips the rewarded option.
 
+## Session/user management
+
+Every install gets a silent, anonymous Firebase session on first launch — no login screen, no
+password. The session's `uid` is stable across app restarts (persisted via AsyncStorage) and is
+the identity to hang future features off (per-user cloud scores, leaderboards, etc.), though
+nothing currently reads or writes to it beyond creating the session.
+
+Uses the **Firebase JS SDK** (`firebase` npm package), not `@react-native-firebase` — the JS SDK
+is pure JavaScript with no native module/Gradle config to maintain, unlike the native SDK.
+
+**One-time setup** (the placeholder config in `lib/firebase.ts` won't authenticate against a real
+project):
+1. Create a project at [console.firebase.google.com](https://console.firebase.google.com).
+2. In that project, add a **Web app** (the `</>` icon on the project overview page) — you don't
+   need Android/iOS-specific registration since the JS SDK talks to Firebase over HTTPS. Give it
+   any nickname.
+3. Copy the `firebaseConfig` object Firebase shows you and paste its values into
+   `lib/firebase.ts`, replacing the `REPLACE_WITH_*` placeholders.
+4. In the Firebase console, go to **Build → Authentication → Sign-in method** and enable the
+   **Anonymous** provider (it's off by default).
+
+- `lib/firebase.ts` — initializes the Firebase app/auth instance and exports
+  `ensureAnonymousSession()`, called once from `app/_layout.tsx` on startup.
+- `hooks/useAuth.ts` — `{ user, uid, isLoading }` for any component that needs the current session.
+
 ## Explicitly out of scope for this pass
 
 - App store submission / builds
 - Real AdMob account & production ad unit IDs
-- Backend / accounts / leaderboards
+- Non-anonymous sign-in (email/Google/etc.), cloud-synced scores, leaderboards

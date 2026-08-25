@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import { Palette } from '../constants/theme';
 import { initializeAds } from '../lib/ads';
+import { ensureAnonymousSession } from '../lib/firebase';
 
 export default function RootLayout() {
   const scheme = useColorScheme();
@@ -14,6 +15,9 @@ export default function RootLayout() {
 
   useEffect(() => {
     initializeAds();
+    ensureAnonymousSession().catch((error) => {
+      console.warn('[auth] failed to start anonymous session', error);
+    });
   }, []);
 
   return (
